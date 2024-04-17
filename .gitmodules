@@ -1,0 +1,3 @@
+[submodule "se3_equivariant_place_recognition"]
+	path = se3_equivariant_place_recognition
+	url = https://github.com/UMich-CURLY/se3_equivariant_place_recognition.git
