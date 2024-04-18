@@ -1,8 +1,10 @@
 import numpy as np
 
 # Read data from text file
-gt = np.loadtxt('results/'+'gt_test_desk.txt', delimiter=',')
-estimates = np.loadtxt('results/'+'estimates_test_desk.txt', delimiter=',')
+# gt = np.loadtxt('results/'+'gt_test.txt', delimiter=',')
+# estimates = np.loadtxt('results/'+'estimates_test.txt', delimiter=',')
+gt = np.loadtxt('results/'+'gt_desk.txt', delimiter=',')
+estimates = np.loadtxt('results/'+'estimates_desk.txt', delimiter=',')
 
 print(gt)
 print(estimates.shape)
@@ -26,9 +28,9 @@ estimates_line, = ax.plot([], [], [], color='red', lw=2, label='Estimates')
 
 # Set plot limits
 # Set plot limits
-# ax.set_xlim3d([np.min(np.concatenateestimates_positions[:, 0]), np.max(estimates_positions[:, 0])])
-# ax.set_ylim3d([np.min(np.concatenateestimates_positions[:, 1]), np.max(estimates_positions[:, 1])])
-# ax.set_zlim3d([np.min(np.concatenateestimates_positions[:, 2]), np.max(estimates_positions[:, 2])])
+ax.set_xlim3d([np.min(estimates_positions[:, 0]), np.max(estimates_positions[:, 0])])
+ax.set_ylim3d([np.min(estimates_positions[:, 1]), np.max(estimates_positions[:, 1])])
+ax.set_zlim3d([np.min(estimates_positions[:, 2]), np.max(estimates_positions[:, 2])])
 
 # Update function for animation
 def update(frame):
