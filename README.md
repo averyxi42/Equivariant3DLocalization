@@ -19,7 +19,7 @@ cd vgtk
 ```
 sudo ../venv/bin/python setup.py build_ext -i
 ```
-##E2PN pre-trained model
+## E2PN pre-trained model
 In our project, we used pretrained E2PN model for extracting equivariant features from point clouds. The code for getting E2PN is:
 ```
 git checkout E2PN
