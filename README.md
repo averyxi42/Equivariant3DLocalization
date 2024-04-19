@@ -19,11 +19,18 @@ cd vgtk
 ```
 sudo ../venv/bin/python setup.py build_ext -i
 ```
+In our project, we used pretrained E2PN model for extracting equivariant features from point clouds. The code for getting E2PN is:
+```
+git checkout E2PN
+```
 
 depending on your setup, you may also need to do
 ```
 pip install progress
 ```
+## Reference Code
+- [E2PN](https://github.com/minghanz/EPN_PointCloud): Efficient SE(3)-Equivariant Point Network used in SE(3)-Equivariant Point Cloud-based Place Recognition as local feature extractor.
+- [SE(3)-Equivariant Point Cloud-based Place Recognition](https://github.com/UMich-CURLY/se3_equivariant_place_recognition) We used the modified E2PN version from this repo and used it as SE(3)-invariant point cloud local feature extractor.
 
 
 
