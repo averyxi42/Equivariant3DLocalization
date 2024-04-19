@@ -3,8 +3,8 @@ import numpy as np
 # Read data from text file
 # gt = np.loadtxt('results/'+'gt_test.txt', delimiter=',')
 # estimates = np.loadtxt('results/'+'estimates_test.txt', delimiter=',')
-gt = np.loadtxt('results/'+'gt_desk.txt', delimiter=',')
-estimates = np.loadtxt('results/'+'estimates_desk.txt', delimiter=',')
+gt = np.loadtxt('results/'+'gt_test_fr1_plant2.txt', delimiter=',')
+estimates = np.loadtxt('results/'+'estimates_test_fr1_plant2.txt', delimiter=',')
 
 print(gt)
 print(estimates.shape)
