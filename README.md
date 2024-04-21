@@ -1,7 +1,7 @@
 Hi thanks for reading this.
 This repository contains the code for Robust 3D Localization with SE3 Equivariant Point Cloud Network.
 ## Abstract
- In this project, we developed a localization method using state-to-the-art E2PN convolution layer. By putting in point cloud data into a pre-trained E2PN Generalized Mean model, we got SE(3)-equivariant global descriptors, which is robust in terms of spacial transformation. We utilized the particle filter to finish the localization task on TUM RGB-D dataset to show our method is automated, unnecessary to mark landmark, and has robust data association. 
+ In this project, we developed a localization method using state-to-the-art E2PN convolution layer. By putting in point cloud data into a pre-trained E2PN Generalized Mean model, we got SE(3)-equivariant global descriptors, which is robust in terms of spacial transformation. We utilized the particle filter to estimate the 3D pose trajectory on three sets of TUM datasets. Our experiments on the TUM RGB-D dataset demonstrated that our algorithm is automated, does not require manual landmark annotation, and maintains robust data association.
 ## Environment Set Up
  To set up the enviornment, first git clone from SE(3)-Equivariant Point Cloud-based Place Recognition's repo, as it contains important pre-trained E2PN model for extracting point-cloud features. It saves time for you. After performing this cd into the se3_equivariant_place_recognition folder.
 ``` 
