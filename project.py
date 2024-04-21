@@ -49,6 +49,7 @@ def load_e2pn():
     saved_state_dict = checkpoint['state_dict'] 
     model.load_state_dict(saved_state_dict)
     return model.e2pn
+    
 def get_global_descriptor(model, network_input):
     with torch.no_grad():    
 
