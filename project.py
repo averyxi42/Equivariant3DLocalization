@@ -1,6 +1,6 @@
 import sys
 import os
-sys.path.append('se3_equivariant_place_recognition/vgtk' )
+sys.path.append('vgtk' )
 
 #from SPConvNets.options import opt as opt_oxford
 import progress.bar
@@ -8,8 +8,9 @@ import torch
 import torch.nn as nn
 import os
 from tqdm import tqdm
-import se3_equivariant_place_recognition.SPConvNets.models.e2pn_gem
+from SPConvNets.models.e2pn_gem import E2PNGeM
 import argparse
+from Distance_SC import distance_sc
 def load_model():
     opt = argparse.Namespace(
         device = 'cuda',
@@ -49,7 +50,6 @@ def load_e2pn():
     saved_state_dict = checkpoint['state_dict'] 
     model.load_state_dict(saved_state_dict)
     return model.e2pn
-    
 def get_global_descriptor(model, network_input):
     with torch.no_grad():    
 
@@ -162,7 +162,9 @@ def write_poses(sync_data,pose_data,fname):
         for time,row in zip(sync_data[:,0],pose_data):
             writer.writerow([time,row[0],row[1],row[2],row[3],row[4],row[5],row[6]])
 ##buggy
-def gen_features(model,sync_data):
+def gen_features(model,sync_data,name = None):
+    if(name==None):
+        name = "rgbd_dataset_freiburg1_xyz"
     features =[]
     bar = progress.bar.PixelBar(max=len(sync_data))
     bs = 16 #batch size
@@ -172,9 +174,9 @@ def gen_features(model,sync_data):
         depth_name = row[2]
         rgb_name = row[3]
         color_raw = o3d.io.read_image(
-            "rgbd_dataset_freiburg1_xyz/"+rgb_name)
+            name+"/"+rgb_name)
         depth_raw = o3d.io.read_image(
-            "rgbd_dataset_freiburg1_xyz/"+depth_name)
+            name+"/"+depth_name)
         rgbd_image = o3d.geometry.RGBDImage.create_from_tum_format(
             color_raw, depth_raw)
         pcd = o3d.geometry.PointCloud.create_from_rgbd_image(
@@ -196,6 +198,8 @@ def gen_features(model,sync_data):
         
         bar.next()
         bc+=1
+    if(bc>0):
+        features.append(get_global_descriptor(model,batch[:bc]))
     bar.finish()
     return np.concatenate(features,axis=0)
 #convert o3d pointcloud to torch tensor ready for inference
@@ -206,6 +210,12 @@ def convert_pointcloud(pcd):
     points = points[indices]
     return torch.from_numpy(points.reshape((1,4096,3))).float()
 
+def pcd2np(pcd):
+    points = np.asarray(pcd.points)
+    num_pts = len(points)
+    indices =np.arange(0,num_pts,num_pts//4096)[:4096]
+    points = points[indices]
+    return points
 def inference(model,pcd):
     return get_global_descriptor(model,convert_pointcloud(pcd))
 #sequentially generate the features for each point cloud.
@@ -229,10 +239,13 @@ def gen_features_seq(model,sync_data,name):
                 o3d.camera.PinholeCameraIntrinsicParameters.PrimeSenseDefault))
         points = np.asarray(pcd.points)
         num_pts = len(points)
-        indices =np.arange(0,num_pts,num_pts//4096)[:4096]
-        points = points[indices]
+        if(num_pts>4096):
+            indices =np.arange(0,num_pts,num_pts//4096)[:4096]
+            points = points[indices]
 
-        features.append(get_global_descriptor(model,torch.from_numpy(points.reshape((1,4096,3))).float()))
+            features.append(get_global_descriptor(model,torch.from_numpy(points.reshape((1,4096,3))).float()))
+        else:
+            features.append(np.zeros(256))
         bar.next()
     bar.finish()
     return np.stack(features,axis=0) #return N x 256 np array
@@ -252,25 +265,42 @@ def distance(f1,f2):
 from numpy.random import multivariate_normal
 #disperse particles according to gaussian random walk
 def predict_particles(particles):
-    tcov = 0.01 #0.1
+    tcov = 0.01 #0.01
     qcov = 0.005
-    out = []
+    out = np.empty_like(particles)
+    i = 0
     for particle in particles:
         t = particle[:3]+ multivariate_normal(np.zeros(3),np.diag([tcov,tcov,tcov]))
         quat = particle[3:] +multivariate_normal(np.zeros(4),np.diag([qcov,qcov,qcov,qcov]))
         quat/= np.linalg.norm(quat)
-        out.append(np.concatenate((t,quat)))
-    return np.stack(out)
+        out[i]=np.concatenate((t,quat))
+        i+=1
+    return out
 
 import scipy.stats as stats
 def correct_particles(particles,model,pcd,tree,features):
     weights = np.empty(len(particles))
     feature = inference(model,pcd)
+    feature/=np.linalg.norm(feature) #normalize
     ind=0
     for particle in particles:
         dst,index  = query(tree,particle)
-        #print(dst)
-        weights[ind] = stats.norm(0,0.8).pdf(distance(feature,features[index]))*stats.norm(0,0.2).pdf(np.linalg.norm(dst)) #0,2
+        #print(dst)  #0.5 0;5 seems to be sweet spot for
+        weights[ind] = stats.norm(0,0.04).pdf(distance(feature,features[index]))*stats.norm(0,0.5).pdf(np.linalg.norm(dst)) #0,2
+        ind+=1
+    weights /= sum(weights)
+    # weights = np.concatenate(weights)
+    # weights/= np.sum(weights)
+    return weights
+
+def correct_particles_sc(particles,scm,pcd,tree,scarr):
+    weights = np.empty(len(particles))
+    feature = scm.ptcloud2sc(pcd,32,8,2)
+    ind=0
+    for particle in particles:
+        dst,index  = query(tree,particle)
+        #print(dst)  #0.5 0;5 seems to be sweet spot for
+        weights[ind] = stats.norm(0,0.07).pdf(distance_sc(feature,scarr[index]))*stats.norm(0,0.5).pdf(np.linalg.norm(dst)) #0,2
         ind+=1
     weights /= sum(weights)
     # weights = np.concatenate(weights)
@@ -305,7 +335,7 @@ def get_moments(particles,weights):
 def gaussian_resample(particles,weights,n):
     mean,cov = get_moments(particles,weights)
     cov = cov[np.arange(7),np.arange(7)]
-    particles = multivariate_normal(mean,np.diag(cov)/20,n)
+    particles = multivariate_normal(mean,np.diag(cov)/5,n)
     norms = np.linalg.norm(particles[:,3:],axis=1)
     particles[:,3:] = particles[:,3:]/norms.reshape((-1,1))
     return particles
